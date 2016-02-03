@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="localhost" port="8081" doc:name="HTTP Listener Configuration"/>
+    <http:request-config name="Rest_API_HTTP_Request_Configuration" host="localhost" port="8080"  doc:name="HTTP Request Configuration"/>
+ 
+    <flow name="rest-client-with-oauthFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/get_users" doc:name="HTTP"/>
+        <http:request config-ref="Rest_API_HTTP_Request_Configuration" path="/oauth/token" method="GET" doc:name="HTTP">
+            
+            <http:request-builder>
+                <http:query-param paramName="grant_type" value="password"/>
+                <http:query-param paramName="client_id" value="restapp"/>
+                <http:query-param paramName="client_secret" value="restapp"/>
+                <http:query-param paramName="username" value="beingjavaguys"/>
+                <http:query-param paramName="password" value="spring@java"/>
+            </http:request-builder>
+            <http:success-status-code-validator values="0..599"/>
+        </http:request>
+
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <json:json-to-object-transformer returnClass="java.util.Map" doc:name="JSON to Object"/>
+
+        <set-variable variableName="accessToken" value="#[payload['access_token']]" doc:name="Variable"/>
+
+        <http:request config-ref="Rest_API_HTTP_Request_Configuration" path="/api/users" method="GET" doc:name="HTTP">
+        	<http:request-builder>
+                <http:query-param paramName="access_token" value="#[payload['access_token']]"/>
+            </http:request-builder>    
+        </http:request>
+    </flow>
+</mule>
